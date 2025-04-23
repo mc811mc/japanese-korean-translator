@@ -1,135 +1,184 @@
-import pykakasi
-import re
 from googletrans import Translator
+from pykakasi import kakasi
 
 class JapaneseToKoreanConverter:
     def __init__(self):
-        # Initialize KAKASI for Kanji to Hiragana conversion
-        self.kakasi = pykakasi.kakasi()
+        self.translator = Translator()
+        # Initialize kakasi for Japanese text processing
+        self.kakasi = kakasi()
         self.kakasi.setMode('J', 'H')  # Kanji to Hiragana
         self.kakasi.setMode('K', 'H')  # Katakana to Hiragana
         self.converter = self.kakasi.getConverter()
 
-        self.translator = Translator()
-
-        # Romanji to Hangul pronunciation mapping
-        self.romanji_to_hangul = {
-            'a': '아', 'i': '이', 'u': '우', 'e': '에', 'o': '오',
-            'ka': '카', 'ki': '키', 'ku': '쿠', 'ke': '케', 'ko': '코',
-            'kya': '키아', 'kyu': '키우', 'kyo': '키요',
-            'sa': '사', 'shi': '시', 'su': '스', 'se': '세', 'so': '소',
-            'sha': '샤', 'shu': '슈', 'sho': '쇼',
-            'ta': '타', 'chi': '치', 'tsu': '츠', 'te': '테', 'to': '토',
-            'cha': '차', 'chu': '추', 'cho': '초',
-            'na': '나', 'ni': '니', 'nu': '누', 'ne': '네', 'no': '노',
-            'nya': '냐', 'nyu': '뉴', 'nyo': '뇨',
-            'ha': '하', 'hi': '히', 'fu': '후', 'he': '헤', 'ho': '호',
-            'hya': '햐', 'hyu': '휴', 'hyo': '효',
-            'ma': '마', 'mi': '미', 'mu': '무', 'me': '메', 'mo': '모',
-            'mya': '먀', 'myu': '뮤', 'myo': '묘',
-            'ra': '라', 'ri': '리', 'ru': '루', 're': '레', 'ro': '로',
-            'rya': '랴', 'ryu': '류', 'ryo': '료',
-            'ya': '야', 'yu': '유', 'yo': '요',
-            'wa': '와', 'wo': '워', 'wi': '위', 'we': '웨',
-            'n': '은',
-            'ga': '가', 'gi': '기', 'gu': '구', 'ge': '게', 'go': '고',
-            'za': '자', 'ji': '지', 'zu': '즈', 'ze': '제', 'zo': '조',
-            'da': '다', 'de': '데', 'do': '도',
-            'ba': '바', 'bi': '비', 'bu': '부', 'be': '베', 'bo': '보',
-            'pa': '파', 'pi': '피', 'pu': '푸', 'pe': '페', 'po': '포'
+    def convert_to_yomikata(self, text):
+        """Convert Japanese text to Korean pronunciation"""
+        # Convert to hiragana first
+        hiragana = self.converter.do(text)
+        
+        # Convert hiragana to Korean pronunciation
+        # Basic mapping for common sounds
+        mapping = {
+            # Basic vowels
+            'あ': '아', 'い': '이', 'う': '우', 'え': '에', 'お': '오',
+            'ア': '아', 'イ': '이', 'ウ': '우', 'エ': '에', 'オ': '오',
+            
+            # K series
+            'か': '카', 'き': '키', 'く': '쿠', 'け': '케', 'こ': '코',
+            'カ': '카', 'キ': '키', 'ク': '쿠', 'ケ': '케', 'コ': '코',
+            'が': '가', 'ぎ': '기', 'ぐ': '구', 'げ': '게', 'ご': '고',
+            'ガ': '가', 'ギ': '기', 'グ': '구', 'ゲ': '게', 'ゴ': '고',
+            
+            # S series
+            'さ': '사', 'し': '시', 'す': '스', 'せ': '세', 'そ': '소',
+            'サ': '사', 'シ': '시', 'ス': '스', 'セ': '세', 'ソ': '소',
+            'ざ': '자', 'じ': '지', 'ず': '즈', 'ぜ': '제', 'ぞ': '조',
+            'ザ': '자', 'ジ': '지', 'ズ': '즈', 'ゼ': '제', 'ゾ': '조',
+            
+            # T series
+            'た': '타', 'ち': '치', 'つ': '츠', 'て': '테', 'と': '토',
+            'タ': '타', 'チ': '치', 'ツ': '츠', 'テ': '테', 'ト': '토',
+            'だ': '다', 'ぢ': '지', 'づ': '즈', 'で': '데', 'ど': '도',
+            'ダ': '다', 'ヂ': '지', 'ヅ': '즈', 'デ': '데', 'ド': '도',
+            
+            # N series
+            'な': '나', 'に': '니', 'ぬ': '누', 'ね': '네', 'の': '노',
+            'ナ': '나', 'ニ': '니', 'ヌ': '누', 'ネ': '네', 'ノ': '노',
+            
+            # H series
+            'は': '하', 'ひ': '히', 'ふ': '후', 'へ': '헤', 'ほ': '호',
+            'ハ': '하', 'ヒ': '히', 'フ': '후', 'ヘ': '헤', 'ホ': '호',
+            'ば': '바', 'び': '비', 'ぶ': '부', 'べ': '베', 'ぼ': '보',
+            'バ': '바', 'ビ': '비', 'ブ': '부', 'ベ': '베', 'ボ': '보',
+            'ぱ': '파', 'ぴ': '피', 'ぷ': '푸', 'ぺ': '페', 'ぽ': '포',
+            'パ': '파', 'ピ': '피', 'プ': '푸', 'ペ': '페', 'ポ': '포',
+            
+            # M series
+            'ま': '마', 'み': '미', 'む': '무', 'め': '메', 'も': '모',
+            'マ': '마', 'ミ': '미', 'ム': '무', 'メ': '메', 'モ': '모',
+            
+            # Y series
+            'や': '야', 'ゆ': '유', 'よ': '요',
+            'ヤ': '야', 'ユ': '유', 'ヨ': '요',
+            
+            # R series
+            'ら': '라', 'り': '리', 'る': '루', 'れ': '레', 'ろ': '로',
+            'ラ': '라', 'リ': '리', 'ル': '루', 'レ': '레', 'ロ': '로',
+            
+            # W series
+            'わ': '와', 'を': '오', 'ん': '은',
+            'ワ': '와', 'ヲ': '오', 'ン': '은',
+            
+            # Small characters
+            'ぁ': '아', 'ぃ': '이', 'ぅ': '우', 'ぇ': '에', 'ぉ': '오',
+            'ァ': '아', 'ィ': '이', 'ゥ': '우', 'ェ': '에', 'ォ': '오',
+            'っ': '', 'ッ': '',
+            
+            # Special combinations
+            'きゃ': '캬', 'きゅ': '큐', 'きょ': '쿄',
+            'キャ': '캬', 'キュ': '큐', 'キョ': '쿄',
+            'ぎゃ': '갸', 'ぎゅ': '규', 'ぎょ': '교',
+            'ギャ': '갸', 'ギュ': '규', 'ギョ': '교',
+            
+            'しゃ': '샤', 'しゅ': '슈', 'しょ': '쇼',
+            'シャ': '샤', 'シュ': '슈', 'ショ': '쇼',
+            'じゃ': '자', 'じゅ': '주', 'じょ': '조',
+            'ジャ': '자', 'ジュ': '주', 'ジョ': '조',
+            
+            'ちゃ': '차', 'ちゅ': '추', 'ちょ': '초',
+            'チャ': '차', 'チュ': '추', 'チョ': '초',
+            
+            'にゃ': '냐', 'にゅ': '뉴', 'にょ': '뇨',
+            'ニャ': '냐', 'ニュ': '뉴', 'ニョ': '뇨',
+            
+            'ひゃ': '햐', 'ひゅ': '휴', 'ひょ': '효',
+            'ヒャ': '햐', 'ヒュ': '휴', 'ヒョ': '효',
+            'びゃ': '뱌', 'びゅ': '뷰', 'びょ': '뵤',
+            'ビャ': '뱌', 'ビュ': '뷰', 'ビョ': '뵤',
+            'ぴゃ': '퍄', 'ぴゅ': '퓨', 'ぴょ': '표',
+            'ピャ': '퍄', 'ピュ': '퓨', 'ピョ': '표',
+            
+            'みゃ': '먀', 'みゅ': '뮤', 'みょ': '묘',
+            'ミャ': '먀', 'ミュ': '뮤', 'ミョ': '묘',
+            
+            'りゃ': '랴', 'りゅ': '류', 'りょ': '료',
+            'リャ': '랴', 'リュ': '류', 'リョ': '료',
+            
+            # Special katakana combinations
+            'ファ': '파', 'フィ': '피', 'フェ': '페', 'フォ': '포',
+            'ウィ': '위', 'ウェ': '웨', 'ウォ': '워',
+            'ヴァ': '바', 'ヴィ': '비', 'ヴ': '부', 'ヴェ': '베', 'ヴォ': '보',
+            'ティ': '티', 'ディ': '디',
+            'トゥ': '투', 'ドゥ': '두',
+            'チェ': '체', 'ジェ': '제',
+            'シェ': '셰', 'ジェ': '제',
+            'イェ': '예',
+            'クァ': '콰', 'クィ': '퀴', 'クェ': '퀘', 'クォ': '쿼',
+            'グァ': '과', 'グィ': '귀', 'グェ': '궤', 'グォ': '궈',
+            
+            # Punctuation and special characters
+            'ー': '-',  # Prolonged sound mark
+            '、': ', ',  # Comma
+            '。': '. ',  # Period
+            '！': '! ',  # Exclamation mark
+            '？': '? ',  # Question mark
+            '「': '"',  # Opening quote
+            '」': '"',  # Closing quote
+            '『': '"',  # Opening double quote
+            '』': '"',  # Closing double quote
         }
 
-    def convert_to_hiragana(self, text: str) -> str:
-        return self.converter.do(text)
-
-    def convert_hiragana_to_romanji(self, text: str) -> str:
-        romanji_text = ''
+        result = ''
         i = 0
-        while i < len(text):
-            found_combination = False
-            for length in range(3, 1, -1):
-                if i + length <= len(text):
-                    combination = text[i:i+length]
-                    if combination in self.romanji_to_hangul:
-                        romanji_text += combination
-                        i += length
-                        found_combination = True
-                        break
-            if not found_combination:
-                romanji_text += text[i]
-                i += 1
-        return romanji_text
+        while i < len(hiragana):
+            # Check for 3-character combinations first (special cases)
+            if i + 2 < len(hiragana):
+                trigraph = hiragana[i:i+3]
+                if trigraph in mapping:
+                    result += mapping[trigraph]
+                    i += 3
+                    continue
 
-    def convert_romanji_to_hangul(self, romanji: str) -> str:
-        hangul_text = ''
-        i = 0
-        while i < len(romanji):
-            found_combination = False
-            for length in range(3, 1, -1):
-                if i + length <= len(romanji):
-                    combination = romanji[i:i+length]
-                    if combination in self.romanji_to_hangul:
-                        hangul_text += self.romanji_to_hangul[combination]
-                        i += length
-                        found_combination = True
-                        break
-            if not found_combination:
-                hangul_text += romanji[i]
-                i += 1
-        # Output is Korean Hangul
-        return hangul_text
+            # Check for 2-character combinations
+            if i + 1 < len(hiragana):
+                digraph = hiragana[i:i+2]
+                if digraph in mapping:
+                    result += mapping[digraph]
+                    i += 2
+                    continue
 
-    def translate_to_korean(self, text: str) -> str:
-        try:
-            translation = self.translator.translate(text, src='ja', dest='ko')
-            return translation.text
-        except Exception as e:
-            return f"Translation error: {e}"
+            # Then check single characters
+            char = hiragana[i]
+            if char in mapping:
+                result += mapping[char]
+            else:
+                result += char
+            i += 1
 
-    def process_japanese_text(self, text: str) -> list:
+        return result
+
+    def process_japanese_text(self, text):
+        """Process Japanese text and return conversion results"""
         results = []
-        lines = text.splitlines()  # Split text into lines
+        lines = text.splitlines()
+        
         for line in lines:
-            if not line.strip():  # Skip empty lines
+            if not line.strip():
                 continue
-            hiragana_text = self.convert_to_hiragana(line)
-            romanji_text = self.convert_hiragana_to_romanji(hiragana_text)
-            hangul_pronunciation = self.convert_romanji_to_hangul(romanji_text)
-            translation = self.translate_to_korean(line)
-            results.append({
-                'original': line,
-                'hangul_pronunciation': hangul_pronunciation,
-                'translation': translation
-            })
-        return results
 
-def main():
-    converter = JapaneseToKoreanConverter()
-
-    while True:
-        print("\n===== Japanese Text Converter =====")
-        print("Enter 'q' to quit")
-        text = input("Enter Japanese text to convert: ").strip()
-
-        if text.lower() == 'q':
-            print("Exiting the converter. Goodbye!")
-            break
-
-        if not text:
-            print("Please enter some text.")
-            continue
-
-        try:
-            results = converter.process_japanese_text(text)
-            print("\n--- Conversion Results ---")
-            for result in results:
-                print(result['original'])
-                print(result['hangul_pronunciation'])
-                print(result['translation'])
-                print()  # Add a blank line between each result
-
-        except Exception as e:
-            print(f"An error occurred: {e}")
-
-if __name__ == "__main__":
-    main()
+            try:
+                # Get yomikata (Korean pronunciation)
+                yomikata = self.convert_to_yomikata(line)
+                
+                # Get translation
+                translation = self.translator.translate(line, src='ja', dest='ko').text
+                
+                results.append({
+                    'yomikata': yomikata,
+                    'original': line,
+                    'translation': translation
+                })
+            except Exception as e:
+                print(f"Error processing line '{line}': {str(e)}")
+                continue
+                
+        return results 
