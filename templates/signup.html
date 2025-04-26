@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - Retemeter</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="header">
+      <h1>레테미터</h1>
+      <div class="header-icons">
+        <a href="/signup" class="signup-button">Sign Up</a>
+        <a href="/login" class="login-button">Log In</a>
+      </div>
+    </div>
+
+    <div class="auth-container">
+      <h2 class="auth-title">Create an Account</h2>
+      <form class="auth-form" action="/signup" method="POST">
+        <input
+          type="email"
+          class="auth-input"
+          placeholder="Email"
+          name="email"
+          required
+        />
+        <button type="submit" class="auth-button">Continue</button>
+      </form>
+
+      <div class="auth-divider">
+        <span>or</span>
+      </div>
+
+      <div class="social-auth">
+        <button class="social-button">
+          <i class="fab fa-google"></i>
+          Continue with Google
+        </button>
+        <button class="social-button">
+          <i class="fab fa-apple"></i>
+          Continue with Apple
+        </button>
+      </div>
+
+      <div class="auth-link">
+        Already have an account? <a href="/login">Log in</a>
+      </div>
+    </div>
+  </body>
+</html>

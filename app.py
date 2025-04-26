@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect
 from converter import JapaneseToKoreanConverter
 
 app = Flask(__name__)
@@ -22,6 +22,23 @@ def convert():
         return jsonify(results)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        # Handle signup logic here
+        return redirect('/')
+    return render_template('signup.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        # Handle login logic here
+        return redirect('/')
+    return render_template('login.html')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)

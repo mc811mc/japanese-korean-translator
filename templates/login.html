@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Log In - Retemeter</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="header">
+      <h1>레테미터</h1>
+      <div class="header-icons">
+        <a href="/signup" class="signup-button">Sign Up</a>
+        <a href="/login" class="login-button">Log In</a>
+      </div>
+    </div>
+
+    <div class="auth-container">
+      <h2 class="auth-title">Enter Email</h2>
+      <form class="auth-form" id="loginForm">
+        <input
+          type="email"
+          class="auth-input"
+          placeholder="Email"
+          name="email"
+          required
+        />
+        <div id="passwordContainer" style="display: none">
+          <input
+            type="password"
+            class="auth-input"
+            placeholder="Password"
+            name="password"
+            required
+          />
+        </div>
+        <button type="submit" class="auth-button">Continue</button>
+      </form>
+
+      <div class="auth-divider">
+        <span>or</span>
+      </div>
+
+      <div class="social-auth">
+        <button class="social-button">
+          <i class="fab fa-google"></i>
+          Continue with Google
+        </button>
+        <button class="social-button">
+          <i class="fab fa-apple"></i>
+          Continue with Apple
+        </button>
+      </div>
+
+      <div class="auth-link">
+        Don't have an account? <a href="/signup">Sign up</a>
+      </div>
+    </div>
+
+    <script>
+      const loginForm = document.getElementById("loginForm");
+      const passwordContainer = document.getElementById("passwordContainer");
+      let emailEntered = false;
+
+      loginForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        if (!emailEntered) {
+          emailEntered = true;
+          passwordContainer.style.display = "block";
+          loginForm.querySelector("button").textContent = "Log In";
+          return;
+        }
+
+        // Handle actual login here
+        const formData = new FormData(loginForm);
+        const data = Object.fromEntries(formData.entries());
+        console.log("Login attempt with:", data);
+      });
+    </script>
+  </body>
+</html>

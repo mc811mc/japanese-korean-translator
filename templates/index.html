@@ -17,9 +17,17 @@
     <div class="header">
       <h1>레테미터</h1>
       <div class="header-icons">
-        <i class="fas fa-user header-icon" title="User Account"></i>
-        <i class="fas fa-th header-icon" title="Apps"></i>
+        <a href="/signup" class="signup-button">Sign Up</a>
+        <a href="/login" class="login-button">Log In</a>
       </div>
+    </div>
+    <div id="translationTitle" class="translation-title" style="display: none">
+      <span
+        class="translation-title-text"
+        contenteditable="true"
+        onblur="updateDisplayedTitle(this.textContent)"
+        onkeydown="handleTitleKeydown(event)"
+      ></span>
     </div>
     <div class="container">
       <div class="translation-box">
@@ -78,7 +86,51 @@
         Saved
       </button>
       <div id="savedTranslations" class="saved-translations">
-        <!-- Saved translations will be displayed here -->
+        <div class="saved-header">
+          <div class="saved-title-container">
+            <h2 class="saved-title">Saved</h2>
+            <i
+              class="fas fa-times saved-close"
+              onclick="toggleSavedTranslations()"
+            ></i>
+          </div>
+        </div>
+        <div class="saved-controls">
+          <div class="search-container">
+            <i class="fas fa-search search-icon" onclick="toggleSearch()"></i>
+            <input
+              type="text"
+              class="search-bar"
+              placeholder="Search"
+              oninput="handleSearch(this.value)"
+              onfocus="this.placeholder = ''"
+              onblur="if(!this.value) this.placeholder = 'Search'"
+            />
+          </div>
+          <div class="search-controls">
+            <div style="position: relative">
+              <button class="sort-button" onclick="toggleSortOptions()">
+                Sort
+              </button>
+              <div id="sortOptions" class="sort-options">
+                <div class="sort-option" onclick="sortByTitle()">
+                  Sort by Title
+                </div>
+                <div class="sort-option" onclick="sortByDate()">
+                  Sort by Date
+                </div>
+              </div>
+            </div>
+            <i
+              class="fas fa-trash"
+              title="Clear All"
+              onclick="clearAllSaved()"
+            ></i>
+          </div>
+        </div>
+        <div id="savedItems">
+          <!-- Saved items will be displayed here -->
+        </div>
       </div>
     </div>
     <footer class="footer">
@@ -99,11 +151,35 @@
       let savedTranslations = JSON.parse(
         localStorage.getItem("savedTranslations") || "[]"
       );
+      let currentSavedId = null;
 
       function handleInput() {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(convertText, DEBOUNCE_DELAY);
+        debounceTimer = setTimeout(() => {
+          convertText();
+          // Auto-save changes if we're editing a saved item
+          if (currentSavedId) {
+            const item = savedTranslations.find(
+              (item) => item.id === currentSavedId
+            );
+            if (item) {
+              item.original = document.getElementById("inputText").value;
+              item.id = Date.now(); // Update the timestamp
+              localStorage.setItem(
+                "savedTranslations",
+                JSON.stringify(savedTranslations)
+              );
+              displaySavedTranslations();
+            }
+          }
+        }, DEBOUNCE_DELAY);
         updateCharacterCount();
+
+        // Hide the title when user starts typing new text
+        if (!currentSavedId) {
+          const titleDiv = document.getElementById("translationTitle");
+          titleDiv.style.display = "none";
+        }
       }
 
       function updateCharacterCount() {
@@ -151,12 +227,29 @@
         })
           .then((response) => response.json())
           .then((data) => {
-            resultDiv.innerHTML = data
+            const translation = data
               .map(
                 (item) =>
                   `${item.yomikata}\n${item.original}\n${item.translation}\n\n`
               )
               .join("");
+            resultDiv.innerHTML = translation;
+
+            // Update the saved item if we're editing one
+            if (currentSavedId) {
+              const item = savedTranslations.find(
+                (item) => item.id === currentSavedId
+              );
+              if (item) {
+                item.translation = translation;
+                item.id = Date.now(); // Update the timestamp
+                localStorage.setItem(
+                  "savedTranslations",
+                  JSON.stringify(savedTranslations)
+                );
+                displaySavedTranslations();
+              }
+            }
           })
           .catch((error) => {
             resultDiv.innerHTML = `Error: ${error.message}`;
@@ -167,14 +260,9 @@
         const resultDiv = document.getElementById("result");
         const text = resultDiv.innerText;
 
-        navigator.clipboard
-          .writeText(text)
-          .then(() => {
-            alert("Translation copied to clipboard!");
-          })
-          .catch((err) => {
-            console.error("Failed to copy text: ", err);
-          });
+        navigator.clipboard.writeText(text).catch((err) => {
+          console.error("Failed to copy text: ", err);
+        });
       }
 
       function saveTranslation() {
@@ -201,34 +289,196 @@
           "savedTranslations",
           JSON.stringify(savedTranslations)
         );
-        alert("Translation saved!");
       }
 
       function toggleSavedTranslations() {
         const savedDiv = document.getElementById("savedTranslations");
+        const container = document.querySelector(".container");
         if (
           savedDiv.style.display === "none" ||
           savedDiv.style.display === ""
         ) {
           displaySavedTranslations();
           savedDiv.style.display = "block";
+          container.classList.add("sidebar-open");
         } else {
           savedDiv.style.display = "none";
+          container.classList.remove("sidebar-open");
         }
       }
 
-      function displaySavedTranslations() {
-        const savedDiv = document.getElementById("savedTranslations");
-        savedDiv.innerHTML = savedTranslations
+      function displaySavedTranslations(searchTerm = "") {
+        const savedDiv = document.getElementById("savedItems");
+        const filteredTranslations = searchTerm
+          ? savedTranslations.filter(
+              (item) =>
+                item.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.original
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase()) ||
+                item.translation
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase())
+            )
+          : savedTranslations;
+
+        // Sort items: items with placeholder titles first, then by date
+        const sortedTranslations = [...filteredTranslations].sort((a, b) => {
+          if (!a.title && b.title) return -1;
+          if (a.title && !b.title) return 1;
+          return b.id - a.id;
+        });
+
+        savedDiv.innerHTML = sortedTranslations
           .map(
             (item) => `
-          <div class="saved-item">
-            <div class="original-text">${item.original}</div>
-            ${item.translation}
+          <div class="saved-item" data-id="${
+            item.id
+          }" onclick="loadSavedTranslation(${item.id})">
+            <div class="saved-item-header">
+              <div 
+                class="saved-item-title ${!item.title ? "placeholder" : ""}"
+                contenteditable="true"
+                onblur="updateTitle(${item.id}, this.textContent)"
+                onkeydown="handleTitleKeydown(event, ${item.id})"
+                onfocus="this.classList.remove('placeholder')"
+                onclick="event.stopPropagation()"
+              >
+                ${item.title || "Enter Custom Title"}
+              </div>
+              <i class="fas fa-star saved-item-unsave" onclick="event.stopPropagation(); unsaveTranslation(${
+                item.id
+              })"></i>
+            </div>
+            <div class="saved-item-content">
+              <div class="saved-item-original">${item.original}</div>
+              <div class="saved-item-translation">${item.translation}</div>
+            </div>
           </div>
         `
           )
           .join("");
+      }
+
+      function loadSavedTranslation(id) {
+        const item = savedTranslations.find((item) => item.id === id);
+        if (item) {
+          currentSavedId = id;
+
+          // Set the input text
+          const inputTextarea = document.getElementById("inputText");
+          inputTextarea.value = item.original;
+
+          // Update character count
+          updateCharacterCount();
+
+          // Set the translation result
+          const resultDiv = document.getElementById("result");
+          resultDiv.innerHTML = item.translation;
+
+          // Show and set the title
+          const titleDiv = document.getElementById("translationTitle");
+          const titleText = document.querySelector(".translation-title-text");
+          titleDiv.style.display = "block";
+          titleText.textContent = item.title || "Enter Custom Title";
+
+          // Close the sidebar
+          const savedDiv = document.getElementById("savedTranslations");
+          savedDiv.style.display = "none";
+          document.querySelector(".container").classList.remove("sidebar-open");
+
+          // Update the saved items display
+          displaySavedTranslations();
+        }
+      }
+
+      function updateTitle(id, newTitle) {
+        const item = savedTranslations.find((item) => item.id === id);
+        if (item) {
+          item.title = newTitle.trim() || null;
+          item.id = Date.now(); // Update the timestamp
+          localStorage.setItem(
+            "savedTranslations",
+            JSON.stringify(savedTranslations)
+          );
+          displaySavedTranslations();
+
+          // Update the displayed title if this is the current item
+          if (currentSavedId === id) {
+            const titleText = document.querySelector(".translation-title-text");
+            titleText.textContent = item.title || "Enter Custom Title";
+          }
+        }
+      }
+
+      function handleTitleKeydown(event, id) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.target.blur();
+        }
+      }
+
+      function toggleSortOptions() {
+        const sortOptions = document.getElementById("sortOptions");
+        sortOptions.classList.toggle("show");
+      }
+
+      function sortByTitle() {
+        savedTranslations.sort((a, b) => {
+          // Placeholder titles always go first
+          if (!a.title && b.title) return -1;
+          if (a.title && !b.title) return 1;
+          // Then sort by actual title
+          const titleA = (a.title || "").toLowerCase();
+          const titleB = (b.title || "").toLowerCase();
+          return titleA.localeCompare(titleB);
+        });
+        localStorage.setItem(
+          "savedTranslations",
+          JSON.stringify(savedTranslations)
+        );
+        displaySavedTranslations();
+        toggleSortOptions();
+      }
+
+      function sortByDate() {
+        savedTranslations.sort((a, b) => {
+          // Placeholder titles always go first
+          if (!a.title && b.title) return -1;
+          if (a.title && !b.title) return 1;
+          // Then sort by date
+          return b.id - a.id;
+        });
+        localStorage.setItem(
+          "savedTranslations",
+          JSON.stringify(savedTranslations)
+        );
+        displaySavedTranslations();
+        toggleSortOptions();
+      }
+
+      function clearAllSaved() {
+        if (
+          confirm(
+            "Are you sure you want to delete all saved translations? This action cannot be undone."
+          )
+        ) {
+          savedTranslations = [];
+          localStorage.setItem(
+            "savedTranslations",
+            JSON.stringify(savedTranslations)
+          );
+          displaySavedTranslations();
+        }
+      }
+
+      function unsaveTranslation(id) {
+        savedTranslations = savedTranslations.filter((item) => item.id !== id);
+        localStorage.setItem(
+          "savedTranslations",
+          JSON.stringify(savedTranslations)
+        );
+        displaySavedTranslations();
       }
 
       // Prevent pasting into the result area
@@ -247,6 +497,66 @@
           styleOptions.style.display = "none";
         }
       });
+
+      // Close sort options when clicking outside
+      document.addEventListener("click", (e) => {
+        const sortOptions = document.getElementById("sortOptions");
+        const sortButton = document.querySelector(".sort-button");
+        if (!sortOptions.contains(e.target) && !sortButton.contains(e.target)) {
+          sortOptions.classList.remove("show");
+        }
+      });
+
+      function toggleSearch() {
+        const searchBar = document.querySelector(".search-bar");
+        const searchIcon = document.querySelector(".search-icon");
+        const searchControls = document.querySelector(".search-controls");
+        const searchContainer = document.querySelector(".search-container");
+
+        searchBar.classList.toggle("active");
+        searchContainer.classList.toggle("active");
+        if (searchBar.classList.contains("active")) {
+          searchBar.focus();
+          searchControls.style.display = "none";
+        } else {
+          searchBar.value = "";
+          handleSearch("");
+          searchControls.style.display = "flex";
+        }
+      }
+
+      function handleSearch(searchTerm) {
+        displaySavedTranslations(searchTerm);
+        const searchControls = document.querySelector(".search-controls");
+        if (searchTerm) {
+          searchControls.style.display = "none";
+        } else {
+          searchControls.style.display = "flex";
+        }
+      }
+
+      function updateDisplayedTitle(newTitle) {
+        if (currentSavedId) {
+          const item = savedTranslations.find(
+            (item) => item.id === currentSavedId
+          );
+          if (item) {
+            item.title = newTitle.trim() || null;
+            localStorage.setItem(
+              "savedTranslations",
+              JSON.stringify(savedTranslations)
+            );
+            displaySavedTranslations();
+          }
+        }
+      }
+
+      function handleTitleKeydown(event) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.target.blur();
+        }
+      }
     </script>
   </body>
 </html>

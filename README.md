@@ -1,4 +1,4 @@
-# japanese-korean-translator
+# japanese-translator
 
 
-Takes Japanese text and displays the yomigana, original text, yomigana in Korean, and the Korean translation
+Takes Japanese text and displays the yomikata, original text, and translation. 
